@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-15
+
 ### Added
 
 - Connection to a Jeedom 4 box through its JSON-RPC API (http or https, API key
@@ -32,4 +34,5 @@ the notes of the version's GitHub Release.
 - Sensor readings throttled to a configurable interval, all states within the
   Gladys rate limit.
 
-[Unreleased]: https://github.com/LM1LC3N7/gladys-jeedom/commits/main
+[Unreleased]: https://github.com/LM1LC3N7/gladys-jeedom/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/LM1LC3N7/gladys-jeedom/releases/tag/v0.1.1

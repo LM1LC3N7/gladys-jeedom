@@ -6,8 +6,8 @@
     "en": "The equipment of your Jeedom box in Gladys: lights, plugs, shutters, thermostats, sensors…",
     "fr": "Les équipements de votre box Jeedom dans Gladys : lumières, prises, volets, capteurs…"
   },
-  "version": "0.1.0",
-  "docker_image": "ghcr.io/lm1lc3n7/gladys-jeedom:0.1.0",
+  "version": "0.1.1",
+  "docker_image": "ghcr.io/lm1lc3n7/gladys-jeedom:0.1.1",
   "gladys_version": ">=5.1.0",
   "cover_image": "https://raw.githubusercontent.com/LM1LC3N7/gladys-jeedom/main/cover.png",
   "categories": ["protocols", "lighting", "climate"],
