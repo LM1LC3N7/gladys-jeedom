@@ -68,6 +68,15 @@ export function httpPost(url, body, { timeout, verifyCertificate, agent, maxByte
     const target = new URL(url);
     const lib = target.protocol === 'https:' ? https : http;
     let timer;
+    let settled = false;
+    /** The first outcome wins: a destroyed request may still end or fail after it. */
+    const settle = (fn, value) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        fn(value);
+      }
+    };
     const req = lib.request(
       target,
       {
@@ -86,34 +95,31 @@ export function httpPost(url, body, { timeout, verifyCertificate, agent, maxByte
         res.on('data', (chunk) => {
           size += chunk.length;
           if (size > limit) {
-            req.destroy(
-              new JeedomError('size', `answer larger than ${Math.round(limit / 1048576)} MB`),
-            );
+            const mb = Math.max(1, Math.round(limit / 1048576));
+            settle(reject, new JeedomError('size', `answer larger than ${mb} MB`));
+            req.destroy();
             return;
           }
           chunks.push(chunk);
         });
-        res.on('end', () => {
-          clearTimeout(timer);
-          resolve({
+        res.on('end', () =>
+          settle(resolve, {
             status: res.statusCode,
             location: res.headers.location,
             body: Buffer.concat(chunks).toString('utf8'),
-          });
-        });
-        res.on('error', (err) => {
-          clearTimeout(timer);
-          reject(networkError(err));
-        });
+          }),
+        );
+        res.on('error', (err) => settle(reject, networkError(err)));
       },
     );
     timer = setTimeout(() => {
-      req.destroy(new JeedomError('timeout', `no answer within ${Math.round(timeout / 1000)} s`));
+      settle(
+        reject,
+        new JeedomError('timeout', `no answer within ${Math.round(timeout / 1000)} s`),
+      );
+      req.destroy();
     }, timeout);
-    req.on('error', (err) => {
-      clearTimeout(timer);
-      reject(networkError(err));
-    });
+    req.on('error', (err) => settle(reject, networkError(err)));
     req.end(body);
   });
 }

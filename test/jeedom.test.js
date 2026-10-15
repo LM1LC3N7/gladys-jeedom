@@ -3,7 +3,15 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { JeedomError, asList, createClient, networkError, parseAnswer } from '../src/jeedom.js';
+import http from 'node:http';
+import {
+  JeedomError,
+  asList,
+  createClient,
+  httpPost,
+  networkError,
+  parseAnswer,
+} from '../src/jeedom.js';
 
 const ok = (body, status = 200) => ({ status, body: JSON.stringify(body) });
 
@@ -92,6 +100,31 @@ test('network errors, without the request', () => {
   );
   const timeout = new JeedomError('timeout', 'no answer within 15 s');
   assert.equal(networkError(timeout), timeout);
+});
+
+test('httpPost on the loopback: an answer, the size limit and the timeout', async (t) => {
+  // 127.0.0.1 only: the transport itself, never the network.
+  const server = http.createServer((req, res) => {
+    if (req.url === '/big') {
+      res.end('x'.repeat(4096));
+    } else if (req.url === '/slow') {
+      setTimeout(() => res.end('{}'), 500);
+    } else {
+      res.end(JSON.stringify({ jsonrpc: '2.0', id: 1, result: 'pong' }));
+    }
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => server.close());
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const options = { timeout: 2000, verifyCertificate: true };
+  const answer = await httpPost(`${base}/api`, '{}', options);
+  assert.equal(await parseAnswer(answer), 'pong');
+  await assert.rejects(httpPost(`${base}/big`, '{}', { ...options, maxBytes: 1024 }), {
+    kind: 'size',
+  });
+  await assert.rejects(httpPost(`${base}/slow`, '{}', { ...options, timeout: 100 }), {
+    kind: 'timeout',
+  });
 });
 
 test('lists', () => {

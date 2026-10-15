@@ -10,6 +10,11 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+### Fixed
+
+- An answer of Jeedom over the size limit (32 MB) is reported as such, instead
+  of a truncated answer read as "not a Jeedom API answer".
+
 ## [0.1.1] - 2026-10-15
 
 ### Added
