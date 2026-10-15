@@ -11,6 +11,10 @@ up to date at the end of every milestone.
   `CHANGELOG.md` and this file.
 - The `gladys-assistant-integration` topic is added at the first real release
   only (before, the store would list an empty integration).
+- No forum topic of its own, ever, and no forum post from a module session:
+  once the 10 integrations claimed in /t/10385 are published, the main session
+  posts one recap message there. A module report ends with
+  "Récap forum : <module> — <one French sentence>".
 
 ## Status
 
@@ -37,7 +41,7 @@ up to date at the end of every milestone.
       `actionConfirm` / access code commands (a config field?).
 - [ ] **Milestone 4 — first release**: cover image, Docker image build check,
       `npx github:GladysAssistant/integration-store .`, Release workflow,
-      topic, forum thread in Développement.
+      topic (the forum recap is the main session's, see Working method).
 
 ## Decisions
 
