@@ -1,177 +1,120 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Jeedom bridge",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "The equipment of your Jeedom box in Gladys: lights, plugs, shutters, thermostats, sensors…",
+    "fr": "Les équipements de votre box Jeedom dans Gladys : lumières, prises, volets, capteurs…"
   },
-  "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "version": "0.1.0",
+  "docker_image": "ghcr.io/lm1lc3n7/gladys-jeedom:0.1.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/LM1LC3N7/gladys-jeedom/main/cover.png",
+  "categories": ["protocols", "lighting", "climate"],
+  "transports": ["local"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your Jeedom equipment in Gladys",
+        "fr": "Vos équipements Jeedom dans Gladys"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Every enabled and visible equipment of your Jeedom box is offered in the Discovery tab: lights, plugs, shutters, thermostats, locks, sensors, read from the generic types of its commands. The states follow Jeedom within seconds and Gladys controls the equipment through Jeedom, which keeps running: migrate at your pace, or use both side by side. Type the address of the box as seen from the Gladys machine (its LAN IP address, not localhost) and the API key of Jeedom: Settings → System → Configuration, API tab, \"API key\", with the API access enabled. Unofficial, not affiliated with Jeedom.",
+        "fr": "Chaque équipement activé et visible de votre box Jeedom est proposé dans l'onglet Découverte : lumières, prises, volets, thermostats, serrures, capteurs, lus depuis les types génériques de ses commandes. Les états suivent Jeedom en quelques secondes et Gladys pilote les équipements à travers Jeedom, qui continue de tourner : migrez à votre rythme, ou utilisez les deux côte à côte. Saisissez l'adresse de la box vue depuis la machine Gladys (son adresse IP sur le réseau local, pas localhost) et la clé API de Jeedom : Réglages → Système → Configuration, onglet API, « Clé API », avec l'accès API activé. Non officiel, sans lien avec Jeedom."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://github.com/LM1LC3N7/gladys-jeedom/blob/main/docs/fr.md",
+          "label": { "en": "Guide (French)", "fr": "Guide (français)" }
+        },
+        {
+          "url": "https://github.com/LM1LC3N7/gladys-jeedom/blob/main/docs/en.md",
+          "label": { "en": "Guide (English)", "fr": "Guide (anglais)" }
+        },
+        {
+          "url": "https://doc.jeedom.com/core/4.4/fr_FR/types",
+          "label": {
+            "en": "The generic types in Jeedom (French)",
+            "fr": "Les types génériques dans Jeedom"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
+      "key": "jeedom_url",
+      "type": "string",
+      "label": { "en": "Address of Jeedom", "fr": "Adresse de Jeedom" },
       "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+        "en": "The address you open Jeedom with: http://192.168.1.20, https://jeedom.lan or http://host/jeedom. A bare IP address means http://.",
+        "fr": "L'adresse avec laquelle vous ouvrez Jeedom : http://192.168.1.20, https://jeedom.lan ou http://hôte/jeedom. Une adresse IP seule vaut http://."
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
+      "placeholder": { "en": "http://192.168.1.20", "fr": "http://192.168.1.20" },
+      "required": true
     },
     {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
+      "key": "api_key",
+      "type": "secret",
+      "label": { "en": "API key of Jeedom", "fr": "Clé API de Jeedom" },
       "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
+        "en": "Settings → System → Configuration, API tab: the \"API key\" (or the API key of a Jeedom user, whose rights then apply).",
+        "fr": "Réglages → Système → Configuration, onglet API : la « Clé API » (ou la clé API d'un utilisateur Jeedom, dont les droits s'appliquent alors)."
       },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
+      "required": true
     },
     {
-      "key": "unit",
-      "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
-      "required": false,
-      "default": "celsius",
-      "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
-      ]
-    },
-    {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "verify_certificate",
+      "type": "boolean",
+      "label": {
+        "en": "Verify the TLS certificate (https)",
+        "fr": "Vérifier le certificat TLS (https)"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Turn off only for a box with a self-signed certificate on your local network.",
+        "fr": "À désactiver seulement pour une box au certificat auto-signé sur votre réseau local."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": true
+    },
+    {
+      "key": "poll_interval",
+      "type": "number",
+      "label": {
+        "en": "Interval between two reads of the Jeedom changes (s)",
+        "fr": "Intervalle entre deux lectures des changements Jeedom (s)"
+      },
+      "description": {
+        "en": "Gladys asks Jeedom what changed at this pace: 2 seconds keeps the states close to real time.",
+        "fr": "Gladys demande à Jeedom ce qui a changé à ce rythme : 2 secondes gardent les états proches du temps réel."
+      },
+      "required": false,
+      "default": 2,
+      "min": 1,
+      "max": 60
+    },
+    {
+      "key": "sensor_interval",
+      "type": "number",
+      "label": {
+        "en": "Minimum interval between two readings of a sensor (s)",
+        "fr": "Intervalle minimum entre deux mesures d'un capteur (s)"
+      },
+      "description": {
+        "en": "Some equipment reports every second: Gladys keeps the last reading at this pace. Switches, lights, motion and opening sensors are never delayed.",
+        "fr": "Certains équipements remontent chaque seconde : Gladys garde la dernière mesure à ce rythme. Interrupteurs, lumières, détecteurs de mouvement et d'ouverture ne sont jamais retardés."
+      },
+      "required": false,
+      "default": 10,
+      "min": 0,
+      "max": 300
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
-    }
-  ],
-  "scene_triggers": [
-    {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
-      "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
-      },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
-        },
-        {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
-          "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
-          ]
-        }
-      ],
-      "variables": [
-        {
-          "key": "target",
-          "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
-        }
-      ]
-    }
-  ],
-  "scene_actions": [
-    {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
-      },
-      "timeout_seconds": 15,
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ],
-      "outputs": [
-        {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
-        }
-      ]
-    }
-  ],
-  "widgets": [
-    {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
-      },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "key": "test_connection",
+      "label": { "en": "Test the connection", "fr": "Tester la connexion" },
+      "timeout_seconds": 90
     }
   ]
 }

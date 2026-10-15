@@ -1,61 +1,114 @@
-# Demo Devices Template
+# Jeedom bridge
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+This integration connects Gladys to **your Jeedom box** and offers every Jeedom
+equipment in the **Discovery** tab of Gladys: lights, plugs, shutters,
+thermostats, locks, sensors. Once an equipment is added, its states follow
+Jeedom within seconds, and Gladys controls it **through Jeedom**, which keeps
+running. Move to Gladys at your own pace, room after room, or use both side by
+side. Unofficial, not affiliated with Jeedom.
+
+> **Development version (0.1).** Tested against the official Jeedom Docker image
+> (Jeedom 4.6) with test equipment, not yet on many real boxes. Your feedback
+> (and the generic types of your equipment) are welcome on the GitHub repository.
 
 ## What you get
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+Gladys reads the **generic type** of each Jeedom command (the "Generic type"
+column of the advanced configuration of a command, set automatically by most
+plugins):
 
-## Configuration
+| Jeedom generic types                                                                               | In Gladys                                                     |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Light state / on / off / toggle, slider, brightness, color, color temperature                      | a light: on/off, brightness, color, color temperature         |
+| Plug, switch, pilot wire, fan, valve, irrigation state / on / off (+ slider)                       | a switch (and a dimmer)                                       |
+| Shutter state / up / down / stop / slider (and motorized windows)                                  | a shutter: open, close, stop, position                        |
+| Gate or garage open / close / toggle, gate or garage state                                         | open / close buttons, an opening sensor                       |
+| Lock state / open / close                                                                          | a lock                                                        |
+| Siren state / on / off                                                                             | a siren                                                       |
+| Thermostat setpoint, temperatures, humidity, state, mode list, lock                                | a thermostat: setpoint, temperature, heating state, mode list |
+| Mode plugin, alarm mode                                                                            | a list to pick the mode                                       |
+| Temperature, humidity, pressure, brightness, UV, CO₂, CO, noise, air quality, rain, wind, distance | the sensor of the right category                              |
+| Presence, door, window, smoke, flood, water leak, sabotage, shock                                  | motion, opening, smoke, leak, tamper, vibration sensors       |
+| Power, consumption, voltage, production                                                            | measurements of the plug, or of an energy meter               |
+| Battery, battery charging                                                                          | the battery level                                             |
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+**Visible info commands without a generic type** are offered too: a numeric
+one as a value (with its unit when Gladys knows it), a text one as a text.
+Hidden commands without a generic type, the "Do not take into account"
+commands and the action commands without a generic type are left out.
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+Each **enabled and visible** Jeedom equipment makes **one Gladys device**,
+named after the equipment and its room ("Lamp (Living room)"); the Jeedom room
+and plugin are kept in its parameters. Disabled or hidden equipment is left
+out.
 
-## Actions
+## Requirements
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+- Jeedom 4.x (Jeedom 3 names its rooms API differently and is not supported).
+- The Gladys machine reaches the Jeedom box on the local network.
+- The API access enabled in Jeedom: **Settings → System → Configuration**,
+  **API** tab: the "API access" must not be disabled, and if it is limited to
+  "white IP addresses", the address of the Gladys machine must be one of them.
 
-## Scenes
+## Installation
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+1. In Jeedom, **Settings → System → Configuration**, **API** tab: copy the
+   **API key** (the core one, at the top). The API key of a Jeedom user works
+   too: the rights of that user then apply.
+2. In Gladys, open the integration, **Configuration**:
+   - **Address of Jeedom**: the address you open Jeedom with, as seen from the
+     Gladys machine: `http://192.168.1.20`, `https://jeedom.lan`, or
+     `http://host/jeedom` when Jeedom lives in a sub-folder. Not `localhost`:
+     the integration runs in its own container.
+   - **API key of Jeedom**: paste it.
+3. Click **Test the connection**: the Jeedom version, the number of equipments
+   and commands, and the number of devices offered are shown.
+4. Open the **Discovery** tab and add the devices you want. Their values are
+   sent as soon as they are added.
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+## Options
 
-## Dashboard
+- **Verify the TLS certificate (https)**: on by default. Turn it off only for a
+  box with a self-signed certificate on your local network.
+- **Interval between two reads of the Jeedom changes**: 2 seconds by default
+  (1 to 60). Gladys asks Jeedom what changed at this pace.
+- **Minimum interval between two readings of a sensor**: 10 seconds by default
+  (0 to 300). A power meter reporting every second is sent to Gladys at this
+  pace. Switches, lights, motion and opening sensors are never delayed.
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+## Good to know
+
+- **Jeedom stays in charge of the devices**: Gladys sends its commands to the
+  Jeedom commands, which drive the Z-Wave, Zigbee, EnOcean… devices. Keep Jeedom
+  running.
+- **New equipment** shows up in Discovery within 10 minutes, at once with the
+  **Scan** button of the Discovery tab. Enabling, disabling, showing or hiding
+  an equipment in Jeedom is followed within seconds.
+- **Transport badge**: a device turns "unreachable" when Jeedom is unreachable,
+  or when its "Online" command (generic type) says it is offline.
+- **Commands that ask for a confirmation or an access code** in Jeedom are
+  refused when sent from Gladys: the error is shown.
+- **A door sensor**: Jeedom says 1 for open, Gladys 1 for closed; the integration
+  converts. The "Invert" option of a binary command in Jeedom is honored.
+- A command whose generic type is wrong or missing in Jeedom shows up as a
+  plain value: fix its generic type in Jeedom (advanced configuration of the
+  command, or **Tools → Equipment types**), then click **Scan** in Discovery.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+| Status message                                               | What to do                                                                                                                                          |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Jeedom refused the API key                                   | Copy the key again (Settings → System → Configuration → API) and paste it in the configuration.                                                     |
+| Jeedom refused the access                                    | In Jeedom, check that the API access is enabled, and allows the address of the Gladys machine.                                                      |
+| Jeedom is unreachable: connection refused / host unreachable | Check the address: the LAN IP address of the box, not `localhost`. Is the box on?                                                                   |
+| Jeedom is unreachable: HTTP 404                              | Check the address. After several failed logins, Jeedom also bans the caller for a while (Settings → System → Configuration → Security, banned IPs). |
+| certificate refused                                          | A self-signed certificate: turn off "Verify the TLS certificate", or use `http://`.                                                                 |
+| redirected to …                                              | Type the address Jeedom redirects to.                                                                                                               |
+
+The integration logs (Gladys, the integration page) give the details.
+
+## Privacy
+
+Everything stays on your local network: the integration talks to your Jeedom
+box only. The API key is stored as a secret by Gladys and never written in the
+logs.
