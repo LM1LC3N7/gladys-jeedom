@@ -10,6 +10,11 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+### Changed
+
+- README: the store install note replaces the work-in-progress notice, and the
+  Releasing section no longer says the store topic is still to be added.
+
 ### Fixed
 
 - An answer of Jeedom over the size limit (32 MB) is reported as such, instead
