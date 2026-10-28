@@ -416,6 +416,21 @@ const OTHER_BINARIES = [
   },
 ];
 
+/**
+ * What Gladys is told of a mode option, in the form its core accepts: it refuses the
+ * WHOLE publication for one option with a blank label, a blank or padded value or a
+ * value seen twice, and the text comes from the Jeedom configuration. So an option
+ * without a usable value is left out (undefined), and one without a label is labelled
+ * with its value.
+ */
+function publishedOption(entry) {
+  const value = cut(entry.value, 100);
+  if (value === '' || value !== value.trim()) {
+    return undefined;
+  }
+  return { value, label: cut(entry.label, 100).trim() || value };
+}
+
 /** Mode lists: the info shows the name of the action of the current mode. */
 const MODES = [
   { info: 'THERMOSTAT_MODE', action: 'THERMOSTAT_SET_MODE' },
@@ -847,8 +862,13 @@ class EquipmentMapper {
             ? a.listValue.map((o) => ({ ...o, cmd: a, select: true }))
             : [{ value: a.name, label: a.name, cmd: a, select: false }];
         for (const entry of entries) {
-          if (options.length < LIMITS.options && !options.some((o) => o.value === entry.value)) {
-            options.push(entry);
+          const shown = publishedOption(entry);
+          if (
+            options.length < LIMITS.options &&
+            shown &&
+            !options.some((o) => o.value === entry.value || o.shown.value === shown.value)
+          ) {
+            options.push({ ...entry, shown });
           }
         }
       }
@@ -863,11 +883,7 @@ class EquipmentMapper {
           type: T.TEXT.SELECT,
           min: 0,
           max: 0,
-          supported_options: options.map((o, i) => ({
-            value: cut(o.value, 100),
-            label: cut(o.label, 100),
-            sort_order: i,
-          })),
+          supported_options: options.map((o, i) => ({ ...o.shown, sort_order: i })),
         },
         {
           state,

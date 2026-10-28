@@ -10,6 +10,13 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+### Fixed
+
+- A mode option without a label is labelled with its value, and one whose value
+  is blank, padded with spaces or repeated once cut is left out, so one odd
+  option can no longer make Gladys refuse the whole publication and leave
+  Discovery empty.
+
 ## [0.1.2] - 2026-10-16
 
 ### Changed
