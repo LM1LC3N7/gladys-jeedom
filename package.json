@@ -1,6 +1,6 @@
 {
   "name": "gladys-jeedom",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "description": "Gladys Assistant external integration bridging the equipment of a Jeedom box. Unofficial, not affiliated with Jeedom.",
   "type": "module",
