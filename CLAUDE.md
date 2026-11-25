@@ -56,11 +56,14 @@ test/helpers/       a fake Jeedom box; Gladys is the SDK's fake
   (0.16.1) too; `test/helpers/coreFeature.js` checks every fixture device.
   Devices carry `should_poll: false` (Gladys 5.3 polls a device with
   `poll_frequency` unless it says so).
-- **Pilot wires**: only a `HEATING_OTHER` action named after an order makes a
-  `heater/pilot-wire-mode` feature (values `PILOT_WIRE_MODE` of the core); a
-  plain heater or a dimmer never becomes one. The state is read only when its
-  encoding is sure (text, Qubino levels, Jeedom pilot wire widgets); a guessed
-  order is worse than none. No option ever blocks off or frost protection.
+- **Pilot wires**: only a `HEATING_OTHER` action named after eco, frost
+  protection or comfort -1/-2 makes a `heater/pilot-wire-mode` feature
+  (values `PILOT_WIRE_MODE` of the core); a plain heater or a dimmer never
+  becomes one. The state is read only when its encoding is sure (text, Qubino
+  levels, Jeedom pilot wire widgets); a guessed order is worse than none.
+  `supported_options` list the orders that have a button (the core's
+  thermostat falls back on them). No option ever blocks off or frost
+  protection.
 - **External ids are forever**: device = `jeedom:<eqLogic id>`, feature =
   `<command id>-<role>` (`binary`, `brightness`, `color`, `temperature`,
   `dimmer`, `position`, `state`, `setpoint`, `mode`, `sensor`, `text`,

@@ -16,8 +16,14 @@ the notes of the version's GitHub Release.
   such as Eco or Hors gel, e.g. a Qubino Flush Pilot Wire through the Z-Wave JS
   plugin) are offered as a pilot wire mode (off, frost protection, eco,
   comfort -2, comfort -1, comfort) that the Gladys thermostat can drive,
-  instead of a switch that only knew comfort and off. Run Discovery again and
-  accept the update for a heater already added.
+  instead of a switch that only knew comfort and off. Only the orders the
+  equipment has a button for are offered, so the thermostat falls back on
+  them (off when there is no frost protection button).
+- **Action needed for a pilot wire heater already in Gladys as a switch**:
+  after this update, the old switch no longer responds nor receives a state
+  until you run Discovery again and accept the update of the device. The
+  update deletes the switch and its history and adds the pilot wire mode.
+  Scenes that used the switch must be redone with the pilot wire mode.
 
 ### Changed
 

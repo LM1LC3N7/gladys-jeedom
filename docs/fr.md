@@ -36,7 +36,7 @@ automatiquement par la plupart des plugins) :
 
 **Radiateurs fil pilote.** Un équipement qui a au moins une commande
 « Chauffage fil pilote Bouton » (`HEATING_OTHER`) nommée d'après un ordre (Eco,
-Hors gel, Confort -1, Confort -2, Arrêt, Confort ; les noms anglais et
+Hors gel, Confort -1, Confort -2 ; les noms anglais et
 Zigbee2MQTT conviennent aussi) devient une fonctionnalité **mode fil pilote** :
 arrêt, hors-gel, éco, confort -2, confort -1, confort. Le « Bouton ON » vaut
 confort, le « Bouton OFF » arrêt, les autres boutons sont reconnus par leur
@@ -44,11 +44,21 @@ nom. Son état est lu quand il donne l'ordre sans ambiguïté : un état texte (
 nom de l'ordre), le niveau d'un module Qubino via le plugin Z-Wave JS (0-10
 arrêt, 11-20 hors-gel, 21-30 éco, 31-40 confort -2, 41-50 confort -1, 51-99
 confort), ou les widgets fil pilote de Jeedom. Sinon la fonctionnalité envoie
-seulement l'ordre et Gladys garde le dernier envoyé. Un ordre pour lequel
-l'équipement n'a pas de bouton est refusé avec une erreur. Sans un tel bouton,
-l'état / on / off du chauffage restent un interrupteur, comme avant. Si
-l'équipement était déjà dans Gladys comme interrupteur, relancez la Découverte
-et acceptez la mise à jour : l'interrupteur laisse place au mode fil pilote.
+seulement l'ordre et Gladys garde le dernier envoyé. Seuls les ordres pour
+lesquels l'équipement a un bouton sont proposés (le thermostat de Gladys se
+replie dessus : arrêt quand il n'y a pas de bouton hors-gel) ; un autre ordre
+est refusé avec une erreur. Sans un tel bouton (un bouton nommé seulement
+Arrêt, Stop ou Confort ne suffit pas), l'état / on / off du chauffage restent
+un interrupteur, comme avant. Avec plusieurs fils pilotes, chaque
+fonctionnalité prend le nom de son état. Un Qubino fil pilote rail DIN
+(ZMNHUD) demande de renseigner ses types génériques à la main dans Jeedom : le
+plugin Z-Wave JS ne lui en donne pas.
+
+**Déjà dans Gladys comme interrupteur ?** Après cette mise à jour, l'ancien
+interrupteur ne répond plus et ne reçoit plus d'état. Relancez la Découverte et
+acceptez la mise à jour de l'appareil : elle supprime l'interrupteur et son
+historique, et ajoute le mode fil pilote. Refaites avec le mode fil pilote les
+scènes qui utilisaient l'interrupteur.
 
 Les **commandes info visibles sans type générique** sont aussi proposées : une
 numérique comme une valeur (avec son unité quand Gladys la connaît), une texte

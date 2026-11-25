@@ -475,6 +475,8 @@ const compact = (text) =>
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/°\s*c\b/g, '')
+    // "Confort +1" is no order: kept apart from "Confort -1".
+    .replace(/\+/g, 'plus')
     .replace(/[^a-z0-9]/g, '');
 
 /**
@@ -487,7 +489,8 @@ export function pilotWireModeOfName(name) {
 }
 
 /**
- * Qubino Flush / DIN Pilot Wire (ZMNHJA, ZMNHJD, ZMNHUD): a Multilevel Switch
+ * Qubino Flush Pilot Wire (ZMNHJA, ZMNHJD; the DIN ZMNHUD once typed by hand in
+ * Jeedom, its Z-Wave JS configuration gives it no generic type): a Multilevel Switch
  * whose level ranges are the orders (Qubino manual: 0-10 stop, 11-20 frost
  * protection, 21-30 eco, 31-40 comfort -2, 41-50 comfort -1, 51-99 comfort;
  * the same as the Jeedom widget heatPiloteWireQubino). Outside 0-99: no order.
@@ -508,6 +511,16 @@ export function qubinoPilotWireMode(raw) {
 /** Jeedom widget heatPiloteWire (two relays, e.g. Fibaro FGS221): 0 comfort, 1 frost, 2 off, 3 eco. */
 const FOUR_ORDERS = [W.COMFORT, W.FROST_PROTECTION, W.OFF, W.ECO];
 
+/** The orders only a pilot wire has: a button named after one of them makes one. */
+const PILOT_WIRE_ONLY = new Set([W.FROST_PROTECTION, W.ECO, W.COMFORT_1, W.COMFORT_2]);
+
+/** A widget name without its plugin prefix: Jeedom stores "core::heatPiloteWire". */
+const widgetOf = (template) =>
+  String(template ?? '')
+    .replace(/^.*::/, '')
+    .trim()
+    .toLowerCase();
+
 /**
  * How the state info of a pilot wire reads, or undefined when nothing says so
  * for sure (then it is not read: a guessed order is worse than none).
@@ -527,22 +540,24 @@ function pilotWireReader(state, plugin, actions) {
   if (state.subType !== 'numeric') {
     return undefined;
   }
-  const template = String(state.template ?? '').toLowerCase();
-  // The Jeedom Z-Wave JS plugin makes a pilot wire of the Qubino modules only.
-  if (plugin === 'zwavejs' || /qubino|6ordres/.test(template)) {
-    return (raw) => {
-      const mode = qubinoPilotWireMode(raw);
-      return mode === undefined ? null : { state: mode };
-    };
-  }
-  if (/^(time)?heatpilotewire$/.test(template)) {
+  const widget = widgetOf(state.template);
+  const qubino = (raw) => {
+    const mode = qubinoPilotWireMode(raw);
+    return mode === undefined ? null : { state: mode };
+  };
+  // The widget the user sees first: it says how Jeedom itself reads the value.
+  if (/^(time)?heatpilotewire$/.test(widget)) {
     return (raw) => {
       const n = toNumber(raw);
       const mode = Number.isInteger(n) ? FOUR_ORDERS[n] : undefined;
       return mode === undefined ? null : { state: mode };
     };
   }
-  return undefined;
+  if (/qubino|6ordres/.test(widget)) {
+    return qubino;
+  }
+  // The Jeedom Z-Wave JS plugin makes a pilot wire of the Qubino modules only.
+  return plugin === 'zwavejs' ? qubino : undefined;
 }
 
 /** Never a feature: technical commands, or used for the transport badge. */
@@ -847,10 +862,10 @@ class EquipmentMapper {
       const group = linked ?? groups.get('') ?? groups.set('', { actions: [] }).get('');
       group.actions.push({ ...action, mode });
     }
-    for (const { state, actions } of groups.values()) {
-      if (!actions.some((a) => a.genericType === 'HEATING_OTHER' && a.mode !== undefined)) {
-        continue;
-      }
+    const wires = [...groups.values()].filter(({ actions }) =>
+      actions.some((a) => a.genericType === 'HEATING_OTHER' && PILOT_WIRE_ONLY.has(a.mode)),
+    );
+    for (const { state, actions } of wires) {
       for (const a of actions) {
         this.taken.add(a.id);
       }
@@ -859,12 +874,34 @@ class EquipmentMapper {
         this.taken.add(state.id);
       }
       // The state anchors the feature even when not read: its id must not
-      // change with a widget or a plugin version.
-      const anchor = state ?? actions[0];
+      // change with a widget or a plugin version. Without a state, the ON
+      // button, the OFF one, else the oldest button: not the display order.
+      const anchor =
+        state ??
+        actions.find((a) => a.genericType === 'HEATING_ON') ??
+        actions.find((a) => a.genericType === 'HEATING_OFF') ??
+        [...actions].sort((a, b) => Number(a.id) - Number(b.id) || a.id.localeCompare(b.id))[0];
+      // The orders the equipment has a button for: the Gladys thermostat falls
+      // back on them (frost protection -> off, rest -> frost protection, off or
+      // eco, comfort -1/-2 -> comfort) instead of sending one that is refused.
+      const supported = Object.values(W)
+        .filter((mode) => actions.some((a) => a.mode === mode))
+        .sort((a, b) => a - b)
+        .map((mode) => ({
+          value: mode,
+          // A command name is never blank (normalizeCmd: `#<id>` at worst).
+          label: cut(actions.find((a) => a.mode === mode).name, 100).trim(),
+        }));
       this.add(
         `${anchor.id}-pilotwire`,
-        this.eq.name,
-        { category: C.HEATER, type: T.HEATER.PILOT_WIRE_MODE, min: W.OFF, max: W.COMFORT },
+        wires.length > 1 ? (state ?? anchor).name : this.eq.name,
+        {
+          category: C.HEATER,
+          type: T.HEATER.PILOT_WIRE_MODE,
+          min: W.OFF,
+          max: W.COMFORT,
+          supported_options: supported,
+        },
         {
           state: read ? state : undefined,
           read,

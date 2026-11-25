@@ -178,7 +178,10 @@ export const CMDS = [
   // (core/config/properties/pilotwire.json of the plugin): the level of a
   // dimmer, one button per order, the orders but On/Off typed HEATING_OTHER.
   info(261, 26, 'numeric', 'Etat', 'HEATING_STATE', '99', {
-    template: { dashboard: 'timeHeatPiloteWireQubino', mobile: 'timeHeatPiloteWireQubino' },
+    template: {
+      dashboard: 'core::timeHeatPiloteWireQubino',
+      mobile: 'core::timeHeatPiloteWireQubino',
+    },
   }),
   action(262, 26, 'other', 'Arret', 'HEATING_OFF', 261, range('0', '99')),
   action(263, 26, 'other', 'Confort', 'HEATING_ON', 261, range('0', '99')),

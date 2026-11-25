@@ -1,5 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import {
   DEVICE_FEATURE_CATEGORIES as C,
   DEVICE_FEATURE_TYPES as T,
@@ -22,6 +24,12 @@ import {
   unitOf,
 } from '../src/mapping.js';
 import { inventoryAnswers } from './fixtures/jeedom.js';
+
+// The thermostat fallbacks of the core, when a Gladys clone is at hand (not on GitHub CI).
+const CORE_THERMOSTAT = '/home/claude/code/Gladys/server/utils/thermostatConstants.js';
+const { supportedStandbyOrder, supportedPilotWireOrder } = existsSync(CORE_THERMOSTAT)
+  ? createRequire(import.meta.url)(CORE_THERMOSTAT)
+  : {};
 
 const inventory = buildInventory(inventoryAnswers());
 const mapped = (id) => mapEquipment(inventory.equipments.find((e) => e.id === String(id)));
@@ -418,6 +426,14 @@ test('a Qubino pilot wire (Z-Wave JS plugin) is a pilot wire mode, not a switch'
     read_only: false,
     has_feedback: true,
     keep_history: true,
+    supported_options: [
+      { value: 0, label: 'Arret' },
+      { value: 1, label: 'Hors Gel' },
+      { value: 2, label: 'Eco' },
+      { value: 3, label: 'Confort -1' },
+      { value: 4, label: 'Confort -2' },
+      { value: 5, label: 'Confort' },
+    ],
   });
   assert.equal(m.optimistic.size, 0);
   for (const [level, mode] of QUBINO_LEVELS) {
@@ -473,7 +489,17 @@ test('pilot wire order names', () => {
   for (const [name, mode] of Object.entries(cases)) {
     assert.equal(pilotWireModeOfName(name), mode, name);
   }
-  for (const name of ['Confort 19', 'Programme', '', 'Mode', 'On', 'Etat', null, 'Ecosse']) {
+  for (const name of [
+    'Confort 19',
+    'Confort +1',
+    'Programme',
+    '',
+    'Mode',
+    'On',
+    'Etat',
+    null,
+    'Ecosse',
+  ]) {
     assert.equal(pilotWireModeOfName(name), undefined, String(name));
   }
 });
@@ -491,8 +517,10 @@ test('HEATING_STATE / ON / OFF without an order button stay a switch', () => {
           generic_type: 'HEATING_OFF',
           value: '900',
         },
-        // An order button whose name says nothing: not enough.
+        // Order buttons whose names say nothing, or only what a relay does: not enough.
         { type: 'action', subType: 'other', name: 'Programme', generic_type: 'HEATING_OTHER' },
+        { type: 'action', subType: 'other', name: 'Stop', generic_type: 'HEATING_OTHER' },
+        { type: 'action', subType: 'other', name: 'Confort', generic_type: 'HEATING_OTHER' },
       ]),
     );
     assert.deepEqual(
@@ -539,6 +567,12 @@ test('a pilot wire whose state is a text (Edisio, Zigbee2MQTT enum)', () => {
   );
   const f = feature(m, '900-pilotwire');
   assert.deepEqual([f.category, f.read_only, f.has_feedback], [C.HEATER, false, true]);
+  assert.deepEqual(f.supported_options, [
+    { value: 0, label: 'Off' },
+    { value: 1, label: 'Hors-gel' },
+    { value: 2, label: 'Eco' },
+    { value: 5, label: 'On' },
+  ]);
   const states = ['On', 'Off', 'Arrêt', 'Hors-gel', 'eco', 'comfort_-1', 'Programme', ' '];
   assert.deepEqual(
     states.map((s) => read(m, 900, s)['900-pilotwire']),
@@ -587,12 +621,24 @@ test('the pilot wire widgets of Jeedom say how a numeric state reads', () => {
       plugin,
     });
   // Fibaro FGS221 (two relays): 0 comfort, 1 frost protection, 2 off, 3 eco.
-  const fgs = eq('heatPiloteWire');
-  assert.deepEqual(
-    ['0', '1', '2', '3', '4', '1.5'].map((v) => read(fgs, 900, v)['900-pilotwire']),
-    [5, 1, 0, 2, null, null],
-  );
-  for (const template of ['heatpilotewire6ordres', 'timeHeatPiloteWireQubino']) {
+  // Jeedom stores a core widget as "core::<name>"; the widget wins over the plugin.
+  for (const [template, plugin] of [
+    ['core::heatPiloteWire', 'openzwave'],
+    ['heatPiloteWire', 'openzwave'],
+    ['core::heatPiloteWire', 'zwavejs'],
+  ]) {
+    const fgs = eq(template, plugin);
+    assert.deepEqual(
+      ['0', '1', '2', '3', '4', '1.5'].map((v) => read(fgs, 900, v)['900-pilotwire']),
+      [5, 1, 0, 2, null, null],
+      `${template} ${plugin}`,
+    );
+  }
+  for (const template of [
+    'openzwave::heatpilotewire6ordres',
+    'core::timeHeatPiloteWireQubino',
+    'timeHeatPiloteWireQubino',
+  ]) {
     const qubino = eq(template);
     assert.deepEqual(
       ['5', '15', '35', '99'].map((v) => read(qubino, 900, v)['900-pilotwire']),
@@ -601,8 +647,9 @@ test('the pilot wire widgets of Jeedom say how a numeric state reads', () => {
     );
   }
   // The Z-Wave JS plugin whatever the widget.
-  assert.equal(read(eq('default', 'zwavejs'), 900, '25')['900-pilotwire'], 2);
-  assert.equal(eq('default').features[0].has_feedback, false);
+  assert.equal(read(eq('core::default', 'zwavejs'), 900, '25')['900-pilotwire'], 2);
+  assert.equal(eq('core::default').features[0].has_feedback, false);
+  assert.equal(eq('core::someHeatPiloteWire').features[0].has_feedback, false);
 });
 
 test('two pilot wires of one equipment, each with its own buttons', () => {
@@ -644,6 +691,10 @@ test('two pilot wires of one equipment, each with its own buttons', () => {
   assert.deepEqual(
     m.features.map((f) => f.key),
     ['900-pilotwire', '901-pilotwire'],
+  );
+  assert.deepEqual(
+    m.features.map((f) => f.name),
+    ['Etat 1', 'Etat 2'],
   );
   assert.deepEqual(write(m, '900-pilotwire', 2), [{ id: '904', options: {} }]);
   assert.deepEqual(write(m, '901-pilotwire', 2), [{ id: '903', options: {} }]);
@@ -705,4 +756,83 @@ test('a binary pilot wire state is not read, even from the Z-Wave JS plugin', ()
   assert.ok(m.optimistic.has('900-pilotwire'));
   assert.ok(!m.readers.some((r) => r.key === '900-pilotwire'));
   assert.deepEqual(write(m, '900-pilotwire', 0), [{ id: '902', options: {} }]);
+  // Decided: the state stays shown as it is, a read-only switch (nothing guessed).
+  const shown = feature(m, '900-binary');
+  assert.deepEqual([shown.category, shown.read_only], [C.SWITCH, true]);
+  assert.deepEqual(read(m, 900, '1'), { '900-binary': 1 });
+});
+
+test('a heater with three orders publishes them: the thermostat falls back on off', () => {
+  const m = mapEquipment(
+    equipment([
+      { type: 'info', subType: 'string', name: 'Etat', generic_type: 'HEATING_STATE' },
+      { type: 'action', subType: 'other', name: 'Confort', generic_type: 'HEATING_ON' },
+      { type: 'action', subType: 'other', name: 'Arrêt', generic_type: 'HEATING_OFF' },
+      { type: 'action', subType: 'other', name: 'Eco', generic_type: 'HEATING_OTHER' },
+    ]),
+  );
+  const f = feature(m, '900-pilotwire');
+  assert.deepEqual(f.supported_options, [
+    { value: 0, label: 'Arrêt' },
+    { value: 2, label: 'Eco' },
+    { value: 5, label: 'Confort' },
+  ]);
+  // The core's own fallbacks (server/utils/thermostatConstants.js), copied here
+  // for the CI that has no Gladys clone, checked against it when there is one.
+  const values = f.supported_options.map((o) => o.value);
+  const pilot = (order) =>
+    values.includes(order)
+      ? order
+      : [3, 4].includes(order) && values.includes(5)
+        ? 5
+        : order === 1 && values.includes(0)
+          ? 0
+          : null;
+  const standby = (order) =>
+    values.includes(order) ? order : (pilot(1) ?? (values.includes(2) ? 2 : null));
+  assert.equal(standby(1), 0);
+  assert.equal(pilot(3), 5);
+  if (supportedStandbyOrder) {
+    assert.equal(supportedStandbyOrder(1, f.supported_options), 0);
+    assert.equal(supportedPilotWireOrder(1, f.supported_options), 0);
+    assert.equal(supportedPilotWireOrder(4, f.supported_options), 5);
+  }
+  assert.deepEqual(write(m, '900-pilotwire', standby(1)), [{ id: '902', options: {} }]);
+  assert.deepEqual(write(m, '900-pilotwire', pilot(3)), [{ id: '901', options: {} }]);
+  // An order without a button is still refused, nothing sent.
+  assert.throws(() => write(m, '900-pilotwire', 1), /no command for the pilot wire order 1/);
+});
+
+test('without a state, the feature id does not follow the display order', () => {
+  const buttons = [
+    { id: '951', type: 'action', subType: 'other', name: 'Eco', generic_type: 'HEATING_OTHER' },
+    {
+      id: '950',
+      type: 'action',
+      subType: 'other',
+      name: 'Hors gel',
+      generic_type: 'HEATING_OTHER',
+    },
+    { id: '952', type: 'action', subType: 'other', name: 'Arrêt', generic_type: 'HEATING_OFF' },
+  ];
+  const keys = (cmds) =>
+    mapEquipment({
+      id: '99',
+      name: 'Test',
+      cmds: cmds.map((c) => normalizeCmd({ eqLogic_id: '99', isVisible: '1', ...c })),
+    }).features.map((f) => f.key);
+  assert.deepEqual(keys(buttons), ['952-pilotwire']);
+  assert.deepEqual(keys([...buttons].reverse()), ['952-pilotwire']);
+  const on = {
+    id: '953',
+    type: 'action',
+    subType: 'other',
+    name: 'Confort',
+    generic_type: 'HEATING_ON',
+  };
+  assert.deepEqual(keys([...buttons, on]), ['953-pilotwire']);
+  assert.deepEqual(keys([on, ...buttons].reverse()), ['953-pilotwire']);
+  // No ON nor OFF: the oldest button.
+  assert.deepEqual(keys(buttons.slice(0, 2)), ['950-pilotwire']);
+  assert.deepEqual(keys(buttons.slice(0, 2).reverse()), ['950-pilotwire']);
 });

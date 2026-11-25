@@ -75,17 +75,24 @@ up to date at the end of every milestone.
   consumption an `index`; the unit decides when it contradicts the generic type.
 - Pilot wires (t/11015, 2026-11-25): an equipment group (HEATING_STATE + the
   HEATING_ON/OFF/OTHER actions linked to it, or all of them when there is one
-  state) with a `HEATING_OTHER` action named after an order is a
-  `heater/pilot-wire-mode` feature `<state id>-pilotwire` (`<first action id>-pilotwire` without a state; the state anchors it
-  even when it is not read). ON = comfort, OFF = off, OTHER
-  by name. State read: text by action name or order name; numeric with the
-  Qubino ranges (Qubino manual, Jeedom widget heatPiloteWireQubino) for the
-  `zwavejs` plugin or a Qubino / `6ordres` widget, with 0 comfort / 1 frost /
-  2 off / 3 eco for the `heatPiloteWire` widget (Fibaro FGS221); else not
-  read (Heatzy's numeric Etat 0-3 means another order list). To check on a
-  real box: the Jeedom Z-Wave JS "Confort" button sends 255 (Multilevel
-  Switch "previous level"), which the Qubino may turn into the last order
-  instead of comfort.
+  state) with a `HEATING_OTHER` action named after an order only a pilot wire
+  has (eco, frost protection, comfort -1, comfort -2; not Arrêt/Stop/Confort)
+  is a `heater/pilot-wire-mode` feature `<state id>-pilotwire`. Without a
+  state: `<HEATING_ON id>`, else `<HEATING_OFF id>`, else the smallest button
+  id, never the display order; the state anchors it even when not read.
+  ON = comfort, OFF = off, OTHER by name. `supported_options` = the orders with
+  a button (label = button name), so the core's thermostat fallbacks apply;
+  another order is refused. Several pilot wires: each named after its state.
+  State read: text by action name or order name; numeric by the widget first
+  (Jeedom stores `core::<widget>`, the prefix is dropped): 0 comfort / 1 frost
+  / 2 off / 3 eco for `heatPiloteWire` (Fibaro FGS221), the Qubino ranges
+  (Qubino manual, widget heatPiloteWireQubino) for a Qubino / `6ordres`
+  widget, then the Qubino ranges for the `zwavejs` plugin; else not read
+  (Heatzy's numeric Etat 0-3 means another order list). A binary state is not
+  read and stays a read-only `<state>-binary` switch. To check on a real box:
+  the Jeedom Z-Wave JS "Confort" button sends 255 (Multilevel Switch "previous
+  level"), which the Qubino may turn into the last order instead of comfort;
+  the read state then differs from the order the thermostat set.
 - Mode lists (`THERMOSTAT_MODE`, `MODE_STATE`, `ALARM_MODE`, `LIGHT_MODE`) are
   `text/select` features whose options are the mode actions (or the
   `listValue` of a select action); the info is read by value or by label.
