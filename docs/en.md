@@ -20,7 +20,8 @@ plugins):
 | Jeedom generic types                                                                               | In Gladys                                                     |
 | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | Light state / on / off / toggle, slider, brightness, color, color temperature                      | a light: on/off, brightness, color, color temperature         |
-| Plug, switch, pilot wire, fan, valve, irrigation state / on / off (+ slider)                       | a switch (and a dimmer)                                       |
+| Plug, switch, heating, fan, valve, irrigation state / on / off (+ slider)                          | a switch (and a dimmer)                                       |
+| Pilot wire heating state / ON / OFF / buttons (Eco, Hors gel, Confort -1…)                         | a pilot wire mode the Gladys thermostat can drive             |
 | Shutter state / up / down / stop / slider (and motorized windows)                                  | a shutter: open, close, stop, position                        |
 | Gate or garage open / close / toggle, gate or garage state                                         | open / close buttons, an opening sensor                       |
 | Lock state / open / close                                                                          | a lock                                                        |
@@ -31,6 +32,21 @@ plugins):
 | Presence, door, window, smoke, flood, water leak, sabotage, shock                                  | motion, opening, smoke, leak, tamper, vibration sensors       |
 | Power, consumption, voltage, production                                                            | measurements of the plug, or of an energy meter               |
 | Battery, battery charging                                                                          | the battery level                                             |
+
+**Pilot wire heaters.** An equipment with at least one "Heating pilot wire
+Button" command (`HEATING_OTHER`) named after an order (Eco, Hors gel, Confort
+-1, Confort -2, Arrêt, Confort; the English and Zigbee2MQTT names work too)
+becomes one **pilot wire mode** feature: off, frost protection, eco, comfort
+-2, comfort -1, comfort. "Button ON" is comfort, "Button OFF" is off, the other
+buttons are taken by their name. Its state is read when it says the order for
+sure: a text state (the order name), the level of a Qubino module through the
+Z-Wave JS plugin (0-10 off, 11-20 frost protection, 21-30 eco, 31-40 comfort
+-2, 41-50 comfort -1, 51-99 comfort), or the Jeedom pilot wire widgets.
+Otherwise the feature only sends the order and Gladys keeps the last one sent.
+An order the equipment has no button for is refused with an error. Without
+such a button, the heating state / on / off stay a switch, as before. If the
+equipment was already in Gladys as a switch, run Discovery again and accept
+the update: the switch gives way to the pilot wire mode.
 
 **Visible info commands without a generic type** are offered too: a numeric
 one as a value (with its unit when Gladys knows it), a text one as a text.

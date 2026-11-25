@@ -5,9 +5,9 @@ import { inventoryAnswers } from './fixtures/jeedom.js';
 
 test('enabled and visible equipment, with or without a room', () => {
   const inventory = buildInventory(inventoryAnswers());
-  assert.equal(inventory.equipments.length, 13);
+  assert.equal(inventory.equipments.length, 14);
   assert.deepEqual(inventory.skipped, { disabled: 1, hidden: 1 });
-  assert.equal(inventory.commands, 58);
+  assert.equal(inventory.commands, 66);
   const door = inventory.equipments.find((e) => e.id === '14');
   assert.deepEqual(
     [door.name, door.objectId, door.objectName, door.plugin],
@@ -101,6 +101,7 @@ test('a command, normalized', () => {
       value: '#4#',
       configuration: { minValue: '7', maxValue: '30,5' },
       display: { invertBinary: '1' },
+      template: { dashboard: ' timeHeatPiloteWireQubino ', mobile: 'default' },
       isVisible: '0',
       order: '3',
       currentValue: '19',
@@ -119,6 +120,7 @@ test('a command, normalized', () => {
       listValue: [],
       visible: false,
       invert: true,
+      template: 'timeHeatPiloteWireQubino',
       order: 3,
       value: undefined,
     },

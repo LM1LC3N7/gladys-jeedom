@@ -21,7 +21,8 @@ automatiquement par la plupart des plugins) :
 | Types génériques Jeedom                                                                                | Dans Gladys                                                         |
 | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
 | Lumière état / on / off / toggle, slider, luminosité, couleur, température couleur                     | une lumière : allumage, luminosité, couleur, température de couleur |
-| Prise, interrupteur, chauffage fil pilote, ventilateur, vanne, arrosage état / on / off (+ slider)     | un interrupteur (et un variateur)                                   |
+| Prise, interrupteur, chauffage, ventilateur, vanne, arrosage état / on / off (+ slider)                | un interrupteur (et un variateur)                                   |
+| Chauffage fil pilote état / bouton ON / OFF / boutons (Eco, Hors gel, Confort -1…)                     | un mode fil pilote que le thermostat de Gladys sait piloter         |
 | Volet état / monter / descendre / stop / slider (et fenêtres motorisées)                               | un volet : ouvrir, fermer, stop, position                           |
 | Portail ou garage ouverture / fermeture / toggle, état portail ou garage                               | des boutons ouvrir / fermer, un capteur d'ouverture                 |
 | Serrure état / ouvrir / fermer                                                                         | une serrure                                                         |
@@ -32,6 +33,22 @@ automatiquement par la plupart des plugins) :
 | Présence, porte, fenêtre, fumée, inondation, fuite d'eau, sabotage, choc                               | détecteurs de mouvement, d'ouverture, de fumée, de fuite, sabotage… |
 | Puissance, consommation, tension, production                                                           | les mesures de la prise, ou d'un compteur d'énergie                 |
 | Batterie, batterie en charge                                                                           | le niveau de batterie                                               |
+
+**Radiateurs fil pilote.** Un équipement qui a au moins une commande
+« Chauffage fil pilote Bouton » (`HEATING_OTHER`) nommée d'après un ordre (Eco,
+Hors gel, Confort -1, Confort -2, Arrêt, Confort ; les noms anglais et
+Zigbee2MQTT conviennent aussi) devient une fonctionnalité **mode fil pilote** :
+arrêt, hors-gel, éco, confort -2, confort -1, confort. Le « Bouton ON » vaut
+confort, le « Bouton OFF » arrêt, les autres boutons sont reconnus par leur
+nom. Son état est lu quand il donne l'ordre sans ambiguïté : un état texte (le
+nom de l'ordre), le niveau d'un module Qubino via le plugin Z-Wave JS (0-10
+arrêt, 11-20 hors-gel, 21-30 éco, 31-40 confort -2, 41-50 confort -1, 51-99
+confort), ou les widgets fil pilote de Jeedom. Sinon la fonctionnalité envoie
+seulement l'ordre et Gladys garde le dernier envoyé. Un ordre pour lequel
+l'équipement n'a pas de bouton est refusé avec une erreur. Sans un tel bouton,
+l'état / on / off du chauffage restent un interrupteur, comme avant. Si
+l'équipement était déjà dans Gladys comme interrupteur, relancez la Découverte
+et acceptez la mise à jour : l'interrupteur laisse place au mode fil pilote.
 
 Les **commandes info visibles sans type générique** sont aussi proposées : une
 numérique comme une valeur (avec son unité quand Gladys la connaît), une texte

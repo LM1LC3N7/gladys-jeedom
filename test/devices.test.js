@@ -4,6 +4,7 @@ import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
 import { buildModel, deviceName } from '../src/devices.js';
 import { buildInventory } from '../src/inventory.js';
 import { inventoryAnswers } from './fixtures/jeedom.js';
+import { assertCoreDevice } from './helpers/coreFeature.js';
 
 const gladys = createFakeGladys();
 const model = buildModel(
@@ -12,8 +13,8 @@ const model = buildModel(
 );
 
 test('one device per equipment, stable external ids', () => {
-  assert.equal(model.devices.length, 12);
-  assert.deepEqual(model.counts, { equipments: 13, empty: 1, overflow: 0 });
+  assert.equal(model.devices.length, 13);
+  assert.deepEqual(model.counts, { equipments: 14, empty: 1, overflow: 0 });
   const lamp = model.devices.find((d) => d.external_id === 'ext:test-integration:jeedom:10');
   assert.equal(lamp.name, 'Lampe (Salon)');
   assert.equal(lamp.should_poll, false);
@@ -26,7 +27,7 @@ test('one device per equipment, stable external ids', () => {
 
 test('Gladys accepts the devices (categories, types, units)', async () => {
   await gladys.publishDiscoveredDevices(model.devices);
-  assert.equal(gladys.fake.discoveredDevices.length, 12);
+  assert.equal(gladys.fake.discoveredDevices.length, 13);
 });
 
 test('the routing tables', () => {
@@ -48,4 +49,20 @@ test('the routing tables', () => {
 test('the room is part of the name', () => {
   assert.equal(deviceName({ name: 'Lampe', objectName: 'Cuisine' }), 'Lampe (Cuisine)');
   assert.equal(deviceName({ name: 'Lampe' }), 'Lampe');
+});
+
+test('every feature of every device has a numeric min and max and the other core fields', () => {
+  let features = 0;
+  for (const device of model.devices) {
+    features += assertCoreDevice(device, device.external_id);
+  }
+  assert.equal(features, 34);
+  const heater = model.devices.find((d) => d.external_id.endsWith(':jeedom:26'));
+  assert.deepEqual(
+    heater.features.map((f) => [f.external_id.split(':').pop(), f.category, f.min, f.max]),
+    [
+      ['261-pilotwire', 'heater', 0, 5],
+      ['268-sensor', 'temperature-sensor', -100, 150],
+    ],
+  );
 });

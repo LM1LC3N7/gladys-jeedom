@@ -69,6 +69,7 @@ test('the inventory becomes Gladys devices, the values flow once a device is cre
       'Portail (Garage)',
       "Porte d'entrée",
       'Prise TV (Salon)',
+      'Radiateur Combles (Salon)',
       'Serrure (Garage)',
       'Thermostat (Cuisine)',
       'Virtuel (Cuisine)',
@@ -77,7 +78,7 @@ test('the inventory becomes Gladys devices, the values flow once a device is cre
     'disabled, hidden and empty equipment are left out',
   );
   assert.equal(gladys.fake.connectionStatus.connected, true);
-  assert.equal(gladys.fake.connectionStatus.message.en, T.connected('4.4.19', 12).en);
+  assert.equal(gladys.fake.connectionStatus.message.en, T.connected('4.4.19', 13).en);
 
   const plug = deviceNamed(gladys, 'Prise TV (Salon)');
   assert.equal(plug.external_id, PLUG);
@@ -229,9 +230,9 @@ test('the connection test shows the version and what is offered', async (t) => {
   assert.equal(ack.success, true);
   assert.equal(
     ack.data.message.en,
-    'Connection OK, Jeedom 4.4.19: 15 equipments, 58 commands. 12 devices offered in Discovery, 3 left out (1 disabled, 1 hidden, 1 with nothing to offer).',
+    'Connection OK, Jeedom 4.4.19: 16 equipments, 66 commands. 13 devices offered in Discovery, 3 left out (1 disabled, 1 hidden, 1 with nothing to offer).',
   );
-  assert.match(ack.data.message.fr, /^Connexion OK, Jeedom 4\.4\.19 : 15 équipements/);
+  assert.match(ack.data.message.fr, /^Connexion OK, Jeedom 4\.4\.19 : 16 équipements/);
   assert.equal(box.clients.at(-1).closed, true, 'the test client is closed');
 
   box.fail = new JeedomError('http', 'HTTP 404');
@@ -270,9 +271,9 @@ test('an equipment enabled in Jeedom shows up, a widget refresh changes nothing'
   box.eqLogics.find((e) => e.id === '19').isEnable = '1';
   update('19', '1');
   await tick(POLL);
-  assert.equal(gladys.fake.discoveredDevices.length, 12);
-  await tick(TIMINGS.inventoryDebounce);
   assert.equal(gladys.fake.discoveredDevices.length, 13);
+  await tick(TIMINGS.inventoryDebounce);
+  assert.equal(gladys.fake.discoveredDevices.length, 14);
   assert.ok(deviceNamed(gladys, 'Ancien module (Salon)'));
 });
 

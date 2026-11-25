@@ -10,6 +10,19 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+### Added
+
+- Pilot wire heaters (Jeedom "Heating pilot wire" commands with order buttons
+  such as Eco or Hors gel, e.g. a Qubino Flush Pilot Wire through the Z-Wave JS
+  plugin) are offered as a pilot wire mode (off, frost protection, eco,
+  comfort -2, comfort -1, comfort) that the Gladys thermostat can drive,
+  instead of a switch that only knew comfort and off. Run Discovery again and
+  accept the update for a heater already added.
+
+### Changed
+
+- Integration SDK 0.16.1; tests stop after 60 s instead of hanging.
+
 ## [0.1.3] - 2026-10-28
 
 ### Fixed

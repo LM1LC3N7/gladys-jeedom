@@ -28,6 +28,15 @@ import { LIMITS } from './constants.js';
 export const COVER_STATE = { STOP: 0, OPEN: 1, CLOSE: -1 };
 export const OPENING_SENSOR_STATE = { OPEN: 0, CLOSE: 1 };
 export const THERMOSTAT_OPERATING_STATE = { IDLE: 0, HEATING: 1, COOLING: 2 };
+// COMFORT_1 is "comfort -1 °C", COMFORT_2 "comfort -2 °C": 4 heats less than 3.
+export const PILOT_WIRE_MODE = {
+  OFF: 0,
+  FROST_PROTECTION: 1,
+  ECO: 2,
+  COMFORT_1: 3,
+  COMFORT_2: 4,
+  COMFORT: 5,
+};
 
 // --- Units -------------------------------------------------------------------
 
@@ -439,6 +448,103 @@ const MODES = [
   { info: undefined, action: 'LIGHT_MODE' },
 ];
 
+// --- Pilot wire heaters -------------------------------------------------------------
+//
+// Jeedom types a pilot wire with HEATING_STATE (its state), HEATING_ON (comfort),
+// HEATING_OFF (off) and HEATING_OTHER (one button per other order, the order
+// being only in its name: "Eco", "Hors Gel", "Confort -1"…). HEATING_STATE /
+// ON / OFF alone are also what users give a plain heating relay, so only a
+// HEATING_OTHER button whose name is an order makes a pilot wire; anything
+// else stays an on/off switch.
+
+const W = PILOT_WIRE_MODE;
+
+/** Order names, lower case, without accents, spaces or signs ("Hors-gel" -> horsgel). */
+const PILOT_WIRE_NAMES = new Map([
+  ...['arret', 'off', 'stop', 'eteint'].map((n) => [n, W.OFF]),
+  ...['horsgel', 'hg', 'frost', 'frostprotection', 'antigel'].map((n) => [n, W.FROST_PROTECTION]),
+  ...['eco', 'economie', 'economy', 'ecomode'].map((n) => [n, W.ECO]),
+  ...['confort1', 'comfort1', 'confortmoins1', 'comfortminus1'].map((n) => [n, W.COMFORT_1]),
+  ...['confort2', 'comfort2', 'confortmoins2', 'comfortminus2'].map((n) => [n, W.COMFORT_2]),
+  ...['confort', 'comfort'].map((n) => [n, W.COMFORT]),
+]);
+
+const compact = (text) =>
+  String(text ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/°\s*c\b/g, '')
+    .replace(/[^a-z0-9]/g, '');
+
+/**
+ * The pilot wire order a name says, or undefined: "Hors Gel", "Confort -1",
+ * "Confort -2 °C", "pilot_wire_mode comfort_-1" (Zigbee2MQTT enum)…
+ */
+export function pilotWireModeOfName(name) {
+  const text = compact(name).replace(/^(pilotwiremode|filpilote|mode)(?=[a-z0-9])/, '');
+  return PILOT_WIRE_NAMES.get(text);
+}
+
+/**
+ * Qubino Flush / DIN Pilot Wire (ZMNHJA, ZMNHJD, ZMNHUD): a Multilevel Switch
+ * whose level ranges are the orders (Qubino manual: 0-10 stop, 11-20 frost
+ * protection, 21-30 eco, 31-40 comfort -2, 41-50 comfort -1, 51-99 comfort;
+ * the same as the Jeedom widget heatPiloteWireQubino). Outside 0-99: no order.
+ */
+export function qubinoPilotWireMode(raw) {
+  const n = toNumber(raw);
+  if (n === undefined || n < 0 || n > 99) {
+    return undefined;
+  }
+  if (n <= 10) return W.OFF;
+  if (n <= 20) return W.FROST_PROTECTION;
+  if (n <= 30) return W.ECO;
+  if (n <= 40) return W.COMFORT_2;
+  if (n <= 50) return W.COMFORT_1;
+  return W.COMFORT;
+}
+
+/** Jeedom widget heatPiloteWire (two relays, e.g. Fibaro FGS221): 0 comfort, 1 frost, 2 off, 3 eco. */
+const FOUR_ORDERS = [W.COMFORT, W.FROST_PROTECTION, W.OFF, W.ECO];
+
+/**
+ * How the state info of a pilot wire reads, or undefined when nothing says so
+ * for sure (then it is not read: a guessed order is worse than none).
+ */
+function pilotWireReader(state, plugin, actions) {
+  if (!state) {
+    return undefined;
+  }
+  if (state.subType === 'string') {
+    const byAction = new Map(actions.map((a) => [compact(a.name), a.mode]));
+    return (raw) => {
+      const text = compact(raw);
+      const mode = byAction.get(text) ?? pilotWireModeOfName(raw);
+      return text === '' || mode === undefined ? null : { state: mode };
+    };
+  }
+  if (state.subType !== 'numeric') {
+    return undefined;
+  }
+  const template = String(state.template ?? '').toLowerCase();
+  // The Jeedom Z-Wave JS plugin makes a pilot wire of the Qubino modules only.
+  if (plugin === 'zwavejs' || /qubino|6ordres/.test(template)) {
+    return (raw) => {
+      const mode = qubinoPilotWireMode(raw);
+      return mode === undefined ? null : { state: mode };
+    };
+  }
+  if (/^(time)?heatpilotewire$/.test(template)) {
+    return (raw) => {
+      const n = toNumber(raw);
+      const mode = Number.isInteger(n) ? FOUR_ORDERS[n] : undefined;
+      return mode === undefined ? null : { state: mode };
+    };
+  }
+  return undefined;
+}
+
 /** Never a feature: technical commands, or used for the transport badge. */
 const IGNORED = new Set(['DONT', 'ONLINE']);
 
@@ -486,6 +592,8 @@ class EquipmentMapper {
   constructor(eq) {
     this.eq = eq;
     this.used = new Set();
+    // Commands a pilot wire took: no other feature reads or runs them.
+    this.taken = new Set();
     this.features = [];
     this.readers = [];
     this.writers = {};
@@ -495,11 +603,15 @@ class EquipmentMapper {
   }
 
   infos(types) {
-    return this.eq.cmds.filter((c) => c.type === 'info' && types.includes(c.genericType));
+    return this.eq.cmds.filter(
+      (c) => c.type === 'info' && types.includes(c.genericType) && !this.taken.has(c.id),
+    );
   }
 
   actions(types) {
-    return this.eq.cmds.filter((c) => c.type === 'action' && types.includes(c.genericType));
+    return this.eq.cmds.filter(
+      (c) => c.type === 'action' && types.includes(c.genericType) && !this.taken.has(c.id),
+    );
   }
 
   /**
@@ -717,6 +829,60 @@ class EquipmentMapper {
       range: [153, 500],
       integer: true,
     });
+  }
+
+  /** Pilot wire heaters: one `heater/pilot-wire-mode` feature, 0 (off) to 5 (comfort). */
+  pilotWires() {
+    const states = this.infos(['HEATING_STATE']);
+    const groups = new Map(states.map((s) => [s.id, { state: s, actions: [] }]));
+    for (const action of this.actions(['HEATING_ON', 'HEATING_OFF', 'HEATING_OTHER'])) {
+      const mode =
+        action.genericType === 'HEATING_ON'
+          ? W.COMFORT
+          : action.genericType === 'HEATING_OFF'
+            ? W.OFF
+            : pilotWireModeOfName(action.name);
+      const linked =
+        groups.get(action.link) ?? (states.length === 1 ? groups.get(states[0].id) : undefined);
+      const group = linked ?? groups.get('') ?? groups.set('', { actions: [] }).get('');
+      group.actions.push({ ...action, mode });
+    }
+    for (const { state, actions } of groups.values()) {
+      if (!actions.some((a) => a.genericType === 'HEATING_OTHER' && a.mode !== undefined)) {
+        continue;
+      }
+      for (const a of actions) {
+        this.taken.add(a.id);
+      }
+      const read = pilotWireReader(state, this.eq.plugin, actions);
+      if (read) {
+        this.taken.add(state.id);
+      }
+      // The state anchors the feature even when not read: its id must not
+      // change with a widget or a plugin version.
+      const anchor = state ?? actions[0];
+      this.add(
+        `${anchor.id}-pilotwire`,
+        this.eq.name,
+        { category: C.HEATER, type: T.HEATER.PILOT_WIRE_MODE, min: W.OFF, max: W.COMFORT },
+        {
+          state: read ? state : undefined,
+          read,
+          write: (value) => {
+            const wanted = typeof value === 'string' && value.trim() !== '' ? Number(value) : value;
+            if (!Number.isInteger(wanted) || wanted < W.OFF || wanted > W.COMFORT) {
+              throw new Error(`${value} is not a pilot wire order`);
+            }
+            // The first button of the order (Jeedom order), whatever its generic type.
+            const action = actions.find((a) => a.mode === wanted);
+            if (!action) {
+              throw new Error(`${this.eq.name} has no command for the pilot wire order ${wanted}`);
+            }
+            return [exec(action)];
+          },
+        },
+      );
+    }
   }
 
   switches() {
@@ -1011,6 +1177,7 @@ class EquipmentMapper {
 
   map() {
     this.lights();
+    this.pilotWires();
     this.switches();
     this.covers('FLAP');
     this.covers('WINDOW');

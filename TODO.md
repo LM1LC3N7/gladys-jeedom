@@ -35,8 +35,7 @@ up to date at the end of every milestone.
       gates, binary covers), and color temperature in Kelvin.
 - [ ] **Milestone 3 — more types**: multimedia (`MEDIA_*`, volume), the
       generic action buttons (`GENERIC_ACTION`, scene launchers) as buttons,
-      BSO tilt (`FLAP_BSO_*`), fan speed, `HEATING_OTHER` pilot wire modes
-      (Gladys `heater/pilot-wire-mode`), cameras (`CAMERA_URL` snapshot), the
+      BSO tilt (`FLAP_BSO_*`), fan speed, cameras (`CAMERA_URL` snapshot), the
       Jeedom scenarios (`scenario::all`, a scene action to run one), and the
       `actionConfirm` / access code commands (a config field?).
 - [ ] **Milestone 4 — first release**: cover image, Docker image build check,
@@ -74,6 +73,19 @@ up to date at the end of every milestone.
 - Measurements of a device that has a switch or a light are `switch`
   features (power, energy, voltage), a meter's are `energy-sensor` ones, its
   consumption an `index`; the unit decides when it contradicts the generic type.
+- Pilot wires (t/11015, 2026-11-25): an equipment group (HEATING_STATE + the
+  HEATING_ON/OFF/OTHER actions linked to it, or all of them when there is one
+  state) with a `HEATING_OTHER` action named after an order is a
+  `heater/pilot-wire-mode` feature `<state id>-pilotwire` (`<first action id>-pilotwire` without a state; the state anchors it
+  even when it is not read). ON = comfort, OFF = off, OTHER
+  by name. State read: text by action name or order name; numeric with the
+  Qubino ranges (Qubino manual, Jeedom widget heatPiloteWireQubino) for the
+  `zwavejs` plugin or a Qubino / `6ordres` widget, with 0 comfort / 1 frost /
+  2 off / 3 eco for the `heatPiloteWire` widget (Fibaro FGS221); else not
+  read (Heatzy's numeric Etat 0-3 means another order list). To check on a
+  real box: the Jeedom Z-Wave JS "Confort" button sends 255 (Multilevel
+  Switch "previous level"), which the Qubino may turn into the last order
+  instead of comfort.
 - Mode lists (`THERMOSTAT_MODE`, `MODE_STATE`, `ALARM_MODE`, `LIGHT_MODE`) are
   `text/select` features whose options are the mode actions (or the
   `listValue` of a select action); the info is read by value or by label.

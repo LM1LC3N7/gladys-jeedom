@@ -64,6 +64,7 @@ export function normalizeCmd(raw) {
     listValue: parseListValue(configuration.listValue),
     visible: raw.isVisible === undefined ? true : flag(raw.isVisible),
     invert: flag(display.invertBinary),
+    template: String(objectOf(raw.template).dashboard ?? '').trim() || undefined,
     order: Number(raw.order) || 0,
     value: type === 'info' ? (raw.currentValue ?? raw.state) : undefined,
   };

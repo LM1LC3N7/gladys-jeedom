@@ -50,6 +50,7 @@ export const EQLOGICS = [
   eq(22, 'Détecteur fumée', 2, 'zigbee'),
   eq(24, 'Portail', 3, 'virtual'),
   eq(25, 'Scénarios', 2, 'virtual'),
+  eq(26, 'Radiateur Combles', 1, 'zwavejs'),
 ];
 
 const cmd = (id, eqId, type, subType, name, genericType, extra = {}) => ({
@@ -173,6 +174,19 @@ export const CMDS = [
   action(242, 24, 'other', 'Ouvrir / fermer', 'GB_TOGGLE'),
   // Nothing to offer: actions without a generic type.
   action(251, 25, 'other', 'Lancer', null),
+  // A Qubino Flush Pilot Wire (ZMNHJD) through the Jeedom Z-Wave JS plugin
+  // (core/config/properties/pilotwire.json of the plugin): the level of a
+  // dimmer, one button per order, the orders but On/Off typed HEATING_OTHER.
+  info(261, 26, 'numeric', 'Etat', 'HEATING_STATE', '99', {
+    template: { dashboard: 'timeHeatPiloteWireQubino', mobile: 'timeHeatPiloteWireQubino' },
+  }),
+  action(262, 26, 'other', 'Arret', 'HEATING_OFF', 261, range('0', '99')),
+  action(263, 26, 'other', 'Confort', 'HEATING_ON', 261, range('0', '99')),
+  action(264, 26, 'other', 'Eco', 'HEATING_OTHER', 261, range('0', '99')),
+  action(265, 26, 'other', 'Hors Gel', 'HEATING_OTHER', 261, range('0', '99')),
+  action(266, 26, 'other', 'Confort -1', 'HEATING_OTHER', 261, range('0', '99')),
+  action(267, 26, 'other', 'Confort -2', 'HEATING_OTHER', 261, range('0', '99')),
+  info(268, 26, 'numeric', 'Température', 'TEMPERATURE', '19.5', { unite: '°C', isVisible: '0' }),
 ];
 
 /** A cmd::update event of event::changes. */
