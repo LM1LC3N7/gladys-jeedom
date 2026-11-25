@@ -111,3 +111,7 @@ run), copy `jeedom/gladyse2e` into `/var/www/html/plugins/` and run
 Observed on Jeedom 4.6.1: ids, flags and `order` are numbers (strings on older
 boxes, both handled), empty lists answer `"ok"`, a wrong key answers
 `{ error: { code: 2 } }`.
+
+## Next patch
+
+- Pilot wire review minors: see `_lots/hors-lot/jeedom-pilotwire-r2.md` (test « seul bouton Confort -2 », doc du bouton non rattaché, Confort = 255 à confirmer).
