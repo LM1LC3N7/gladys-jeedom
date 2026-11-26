@@ -89,10 +89,10 @@ up to date at the end of every milestone.
   (Qubino manual, widget heatPiloteWireQubino) for a Qubino / `6ordres`
   widget, then the Qubino ranges for the `zwavejs` plugin; else not read
   (Heatzy's numeric Etat 0-3 means another order list). A binary state is not
-  read and stays a read-only `<state>-binary` switch. To check on a real box:
-  the Jeedom Z-Wave JS "Confort" button sends 255 (Multilevel Switch "previous
-  level"), which the Qubino may turn into the last order instead of comfort;
-  the read state then differs from the order the thermostat set.
+  read and stays a read-only `<state>-binary` switch. Checked on a real box
+  (tikipoof, forum t/11015 n° 23, 2026-11-25): the Jeedom Z-Wave JS "Confort"
+  button sends 255 and the Qubino goes to comfort (state 99), not the last
+  order.
 - Mode lists (`THERMOSTAT_MODE`, `MODE_STATE`, `ALARM_MODE`, `LIGHT_MODE`) are
   `text/select` features whose options are the mode actions (or the
   `listValue` of a select action); the info is read by value or by label.
@@ -114,4 +114,4 @@ boxes, both handled), empty lists answer `"ok"`, a wrong key answers
 
 ## Next patch
 
-- Pilot wire review minors: see `_lots/hors-lot/jeedom-pilotwire-r2.md` (test « seul bouton Confort -2 », doc du bouton non rattaché, Confort = 255 à confirmer).
+- Pilot wire review minors: see `_lots/hors-lot/jeedom-pilotwire-r2.md` (test « seul bouton Confort -2 », doc du bouton non rattaché).
